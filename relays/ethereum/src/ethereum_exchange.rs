@@ -322,7 +322,10 @@ fn run_auto_transactions_relay_loop(params: EthereumExchangeParams, eth_start_wi
 	} = params;
 
 	let do_run_loop = move || -> Result<(), String> {
+		log::info!( target: "bridge", "Connecting to Eth client");
 		let eth_client = EthereumRpcClient::new(eth_params);
+
+		log::info!( target: "bridge", "Connecting to Sub client");
 		let sub_client = async_std::task::block_on(SubstrateRpcClient::new(sub_params, instance))
 			.map_err(|err| format!("Error starting Substrate client: {:?}", err))?;
 
