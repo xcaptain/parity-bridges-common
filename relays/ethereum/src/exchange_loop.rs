@@ -211,6 +211,7 @@ async fn run_loop_iteration<P: TransactionProofPipeline>(
 					// we have just updated state => proceed to next block retrieval
 				}
 				Err(relayed_transactions) => {
+					log::info!(target: "bridge", "Unable to process relayed txs");
 					*current_finalized_block = Some((block, relayed_transactions));
 					return Err(());
 				}

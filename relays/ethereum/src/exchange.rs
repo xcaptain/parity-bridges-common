@@ -153,6 +153,7 @@ pub async fn relay_block_transactions<P: TransactionProofPipeline>(
 		.into_iter()
 		.enumerate()
 		.skip(relayed_transactions.processed);
+	log::info!(target: "bridge", "Gonna try and proccess {} txs", transactions_to_process.len());
 	for (source_tx_index, source_tx) in transactions_to_process {
 		let result = async {
 			let source_tx_id = format!("{}/{}", source_block.id().1, source_tx_index);
@@ -170,6 +171,7 @@ pub async fn relay_block_transactions<P: TransactionProofPipeline>(
 						)
 					})?;
 
+			log::info!(target: "bridge", "Tx Needs to be relayed: {}", needs_to_be_relayed);
 			if !needs_to_be_relayed {
 				return Ok(false);
 			}
@@ -192,6 +194,7 @@ pub async fn relay_block_transactions<P: TransactionProofPipeline>(
 		// So we're going with option#2 here (the only exception are connection errors).
 		match result {
 			Ok(false) => {
+				log::info!(target: "bridge", "Proccessed a Tx");
 				relayed_transactions.processed += 1;
 			}
 			Ok(true) => {
@@ -276,6 +279,7 @@ async fn prepare_transaction_proof<P: TransactionProofPipeline>(
 	source_block: &P::Block,
 	source_tx_index: usize,
 ) -> Result<P::TransactionProof, StringifiedMaybeConnectionError> {
+	log::info!(target: "bridge", "Preparing Tx Proof for {}", P::SOURCE_NAME);
 	source_client
 		.transaction_proof(source_block, source_tx_index)
 		.await
@@ -298,6 +302,7 @@ async fn relay_ready_transaction_proof<P: TransactionProofPipeline>(
 	source_tx_id: &str,
 	source_tx_proof: P::TransactionProof,
 ) -> Result<(), StringifiedMaybeConnectionError> {
+	log::info!(target: "bridge", "Relaying Tx Proof to {}", P::TARGET_NAME);
 	target_client
 		.submit_transaction_proof(source_tx_proof)
 		.await
