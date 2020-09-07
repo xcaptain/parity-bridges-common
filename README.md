@@ -233,38 +233,29 @@ docker run -it bridge-node-dev --dev --tmp
 Notice that the `docker run` command will accept all the normal Substrate flags. For local
 development you should at minimum run with the `--dev` flag or else no blocks will be produced.
 
-### GitHub Docker Build
-If you don't want to run using the local source files you can also use images which pull the latest
-`master`, or some other commit or branch of your choosing (configured with the `BRIDGE_HASH` build
-argument).
+### Docker Hub Images
+The images for the three main components of the bridge are also available on the Docker Hub. The
+Docker image for the Substrate node can be found [here](https://hub.docker.com/r/paritytech/bridge-node)
+and the image of the bridge relay can be found
+[here](https://hub.docker.com/r/paritytech/ethereum-poa-relay). Both of these images are built
+nightly by the CI.
 
-These images live in the [Rialto deployments](./deployments/rialto) folder.
+The fork of the OpenEthereum node with the Grandpa finality precompile can also be found on the
+Docker Hub [here](https://hub.docker.com/r/hcastano/openethereum-bridge-builtins/).
+
+To run the Ethereum to Substrate header sync using the Docker images first pull the images:
 
 ```bash
-docker build \
-  https://raw.githubusercontent.com/paritytech/parity-bridges-common/master/deployments/rialto/Bridge.Dockerfile \
-  -t poa-relay
-docker run -it poa-relay
+docker pull paritytech/bridge-node
+docker pull paritytech/ethereum-poa-relay
+docker pull hcastano/openethereum-bridge-builtins
 ```
+And then run the containers using the same CLI arguments as you would with the binaries:
 
-By default the relayer is configured to connect to OpenEthereum `--dev` chain node and Substrate
-`bridge-node` running in `--dev` mode.
-
-To build the `bridge-node`:
 ```bash
-docker build \
-  https://raw.githubusercontent.com/paritytech/parity-bridges-common/master/deployments/rialto/Bridge.Dockerfile \
-  -t bridge-node \
-  --build-arg PROJECT=bridge-node
-docker run -it bridge-node --dev
-```
-
-And to build `OpenEthereum` with bridge support:
-```bash
-docker build \
-  https://raw.githubusercontent.com/paritytech/parity-bridges-common/master/deployments/rialto/OpenEthereum.Dockerfile
-  -t openethereum
-docker run -it openethereum
+docker run -it paritytech/bridge-node --dev --tmp
+docker run -it hcastano/openethereum-bridge-builtins --config dev
+docker run -it paritytech/ethereum-poa-relay eth-to-sub
 ```
 
 ### Full Network Docker Setup
