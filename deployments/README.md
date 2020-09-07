@@ -7,7 +7,7 @@
 - `Dockerfile`s are designed to build & run nodes & relay by fetching the sources
   from a git repo.
 
-  You can configure commit hashes using docker build arguments:
+  You can configure commit hashes using Docker build arguments:
   - `BRIDGE_REPO` - git repository of the bridge node & relay code
   - `BRIDGE_HASH` - commit hash within that repo (can also be a branch or tag)
   - `ETHEREUM_REPO` - git repository of the OpenEthereum client
@@ -15,18 +15,13 @@
   - `PROJECT` - a project to build withing bridges repo (`bridge-node` or `ethereum-poa-relay`
     currently)
 
-  You can however uncomment `ADD` commands within the docker files to build
+  You can however uncomment `ADD` commands within the Docker files to build
   an image from your local sources.
 
 ### Requirements
 
 Make sure to install `docker` and `docker-compose` to be able to run & test
 bridges deployments locally.
-
-### Polkadot.js UI
-
-To teach the UI decode our custom types used in the pallet, go to: `Settings -> Developer`
-and import the [`./types.json`](./types.json)
 
 ## Rialto
 
@@ -122,14 +117,13 @@ NODE_BRIDGE_HASH=00698187dcabbd6836e7b5339c03c38d1d80efed
 RELAY_BRIDGE_HASH=00698187dcabbd6836e7b5339c03c38d1d80efed
 ```
 
-### UI
+### Polkadot.js UI
+
+To teach the UI decode our custom types used in the pallet, go to: `Settings -> Developer`
+and import the [`./types.json`](./types.json)
 
 Use [wss://rialto.bridges.test-installations.parity.io/](https://polkadot.js.org/apps/)
 as a custom endpoint for [https://polkadot.js.org/apps/](https://polkadot.js.org/apps/).
-
-## Kovan -> Westend
-
-???
 
 ## Scripts
 
