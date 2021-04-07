@@ -44,6 +44,7 @@ arg_enum! {
 		MillauToRialto,
 		RialtoToMillau,
 		WestendToMillau,
+		RococoToMillau,
 	}
 }
 
@@ -94,6 +95,25 @@ macro_rules! select_bridge {
 					millau_runtime::BridgeGrandpaWestendCall::<
 						millau_runtime::Runtime,
 						millau_runtime::WestendGrandpaInstance,
+					>::initialize(init_data)
+					.into()
+				}
+
+				$generic
+			}
+			InitBridgeName::RococoToMillau => {
+				type Source = relay_rococo_client::Rococo;
+				type Target = relay_millau_client::Millau;
+
+				fn encode_init_bridge(
+					init_data: InitializationData<<Source as ChainBase>::Header>,
+				) -> <Target as Chain>::Call {
+					// at Rococo -> Millau initialization we're not using sudo, because otherwise our deployments
+					// may fail, because we need to initialize both Rialto -> Millau and Rococo -> Millau bridge.
+					// => since there's single possible sudo account, one of transaction may fail with duplicate nonce error
+					millau_runtime::BridgeGrandpaRococoCall::<
+						millau_runtime::Runtime,
+						millau_runtime::RococoGrandpaInstance,
 					>::initialize(init_data)
 					.into()
 				}

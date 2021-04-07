@@ -42,6 +42,7 @@ arg_enum! {
 		MillauToRialto,
 		RialtoToMillau,
 		WestendToMillau,
+		RococoToMillau,
 	}
 }
 
@@ -59,12 +60,21 @@ macro_rules! select_bridge {
 				type Source = relay_rialto_client::Rialto;
 				type Target = relay_millau_client::Millau;
 				type Finality = crate::rialto_millau::rialto_headers_to_millau::RialtoFinalityToMillau;
+
 				$generic
 			}
 			RelayHeadersBridge::WestendToMillau => {
 				type Source = relay_westend_client::Westend;
 				type Target = relay_millau_client::Millau;
 				type Finality = crate::rialto_millau::westend_headers_to_millau::WestendFinalityToMillau;
+
+				$generic
+			}
+			RelayHeadersBridge::RococoToMillau => {
+				type Source = relay_rococo_client::Rococo;
+				type Target = relay_millau_client::Millau;
+				type Finality = crate::rialto_millau::rococo_headers_to_millau::RococoFinalityToMillau;
+
 				$generic
 			}
 		}
