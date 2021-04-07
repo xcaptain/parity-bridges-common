@@ -64,6 +64,7 @@ pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_bridge_grandpa::Call as BridgeGrandpaRialtoCall;
 pub use pallet_bridge_grandpa::Call as BridgeGrandpaWestendCall;
+pub use pallet_bridge_grandpa::Call as BridgeGrandpaRococoCall;
 pub use pallet_bridge_messages::Call as MessagesCall;
 pub use pallet_sudo::Call as SudoCall;
 pub use pallet_timestamp::Call as TimestampCall;
@@ -308,7 +309,6 @@ parameter_types! {
 	// Note that once this is hit the pallet will essentially throttle incoming requests down to one
 	// call per block.
 	pub const MaxRequests: u32 = 50;
-	pub const WestendValidatorCount: u32 = 255;
 }
 
 pub type RialtoGrandpaInstance = ();
@@ -323,6 +323,15 @@ impl pallet_bridge_grandpa::Config for Runtime {
 pub type WestendGrandpaInstance = pallet_bridge_grandpa::Instance1;
 impl pallet_bridge_grandpa::Config<WestendGrandpaInstance> for Runtime {
 	type BridgedChain = bp_westend::Westend;
+	type MaxRequests = MaxRequests;
+
+	// TODO [#391]: Use weights generated for the Millau runtime instead of Rialto ones.
+	type WeightInfo = pallet_bridge_grandpa::weights::RialtoWeight<Runtime>;
+}
+
+pub type RococoGrandpaInstance = pallet_bridge_grandpa::Instance2;
+impl pallet_bridge_grandpa::Config<RococoGrandpaInstance> for Runtime {
+	type BridgedChain = bp_rococo::Rococo;
 	type MaxRequests = MaxRequests;
 
 	// TODO [#391]: Use weights generated for the Millau runtime instead of Rialto ones.
@@ -384,6 +393,7 @@ construct_runtime!(
 		BridgeDispatch: pallet_bridge_dispatch::{Pallet, Event<T>},
 		BridgeRialtoGrandpa: pallet_bridge_grandpa::{Pallet, Call, Storage},
 		BridgeWestendGrandpa: pallet_bridge_grandpa::<Instance1>::{Pallet, Call, Config<T>, Storage},
+		BridgeRococoGrandpa: pallet_bridge_grandpa::<Instance2>::{Pallet, Call, Config<T>, Storage},
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Call, Storage},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
@@ -578,6 +588,17 @@ impl_runtime_apis! {
 
 		fn is_known_header(hash: bp_westend::Hash) -> bool {
 			BridgeWestendGrandpa::is_known_header(hash)
+		}
+	}
+
+	impl bp_rococo::RococoFinalityApi<Block> for Runtime {
+		fn best_finalized() -> (bp_rococo::BlockNumber, bp_rococo::Hash) {
+			let header = BridgeRococoGrandpa::best_finalized();
+			(header.number, header.hash())
+		}
+
+		fn is_known_header(hash: bp_rococo::Hash) -> bool {
+			BridgeRococoGrandpa::is_known_header(hash)
 		}
 	}
 

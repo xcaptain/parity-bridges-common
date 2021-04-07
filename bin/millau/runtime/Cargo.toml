@@ -18,6 +18,7 @@ bp-header-chain = { path = "../../../primitives/header-chain", default-features 
 bp-messages = { path = "../../../primitives/messages", default-features = false }
 bp-millau = { path = "../../../primitives/chain-millau", default-features = false }
 bp-rialto = { path = "../../../primitives/chain-rialto", default-features = false }
+bp-rococo = { path = "../../../primitives/chain-rococo", default-features = false }
 bp-runtime = { path = "../../../primitives/runtime", default-features = false }
 bp-westend = { path = "../../../primitives/chain-westend", default-features = false }
 bridge-runtime-common = { path = "../../runtime-common", default-features = false }
@@ -65,6 +66,7 @@ std = [
 	"bp-messages/std",
 	"bp-millau/std",
 	"bp-rialto/std",
+	"bp-rococo/std",
 	"bp-runtime/std",
 	"bp-westend/std",
 	"bridge-runtime-common/std",
