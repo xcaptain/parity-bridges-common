@@ -812,6 +812,7 @@ dependencies = [
  "bp-messages",
  "bp-polkadot-core",
  "bp-runtime",
+ "frame-support",
  "parity-scale-codec 2.0.1",
  "sp-api",
  "sp-runtime",

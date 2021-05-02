@@ -21,6 +21,8 @@
 #![allow(clippy::unnecessary_mut_passed)]
 
 use bp_messages::{LaneId, MessageNonce, UnrewardedRelayersState, Weight};
+use frame_support::weights::constants::WEIGHT_PER_SECOND;
+use sp_runtime::Perbill;
 use sp_std::prelude::*;
 use sp_version::RuntimeVersion;
 
@@ -44,14 +46,66 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	transaction_version: 1,
 };
 
-// pub type UncheckedExtrinsic = bp_polkadot_core::UncheckedExtrinsic<Call>;
+pub type AccountSigner = sp_runtime::MultiSigner;
 
-// We use this to get the account on Template (target) which is derived from Rococo's (source)
+// We use this to get the account on Template (target) which is derived from Millau's (source)
 // account.
-pub fn derive_account_from_rococo_id(id: bp_runtime::SourceAccount<AccountId>) -> AccountId {
-	let encoded_id = bp_runtime::derive_account_id(bp_runtime::ROCOCO_BRIDGE_INSTANCE, id);
+pub fn derive_account_from_millau_id(id: bp_runtime::SourceAccount<AccountId>) -> AccountId {
+	let encoded_id = bp_runtime::derive_account_id(bp_runtime::MILLAU_BRIDGE_INSTANCE, id);
 	AccountIdConverter::convert(encoded_id)
 }
+
+/// Number of extra bytes (excluding size of storage value itself) of storage proof, built at
+/// Template chain. This mostly depends on number of entries (and their density) in the storage trie.
+/// Some reserve is reserved to account future chain growth.
+pub const EXTRA_STORAGE_PROOF_SIZE: u32 = 1024;
+
+/// Number of bytes, included in the signed Template transaction apart from the encoded call itself.
+///
+/// Can be computed by subtracting encoded call size from raw transaction size.
+pub const TX_EXTRA_BYTES: u32 = 103;
+
+/// Maximal size (in bytes) of encoded (using `Encode::encode()`) account id.
+pub const MAXIMAL_ENCODED_ACCOUNT_ID_SIZE: u32 = 32;
+
+/// Maximal weight of single Template block.
+///
+/// This represents two seconds of compute assuming a target block time of six seconds.
+pub const MAXIMUM_BLOCK_WEIGHT: Weight = 2 * WEIGHT_PER_SECOND;
+
+/// Represents the average portion of a block's weight that will be used by an
+/// `on_initialize()` runtime call.
+pub const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(10);
+
+/// Represents the portion of a block that will be used by Normal extrinsics.
+pub const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
+
+/// Maximal number of unrewarded relayer entries at inbound lane.
+pub const MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE: MessageNonce = 128;
+
+/// Maximal number of unconfirmed messages at inbound lane.
+pub const MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE: MessageNonce = 128;
+
+/// Weight of single regular message delivery transaction on Template chain.
+///
+/// This value is a result of `pallet_bridge_messages::Pallet::receive_messages_proof_weight()` call
+/// for the case when single message of `pallet_bridge_messages::EXPECTED_DEFAULT_MESSAGE_LENGTH` bytes is delivered.
+/// The message must have dispatch weight set to zero. The result then must be rounded up to account
+/// possible future runtime upgrades.
+pub const DEFAULT_MESSAGE_DELIVERY_TX_WEIGHT: Weight = 1_000_000_000;
+
+/// Increase of delivery transaction weight on Template chain with every additional message byte.
+///
+/// This value is a result of `pallet_bridge_messages::WeightInfoExt::storage_proof_size_overhead(1)` call. The
+/// result then must be rounded up to account possible future runtime upgrades.
+pub const ADDITIONAL_MESSAGE_BYTE_DELIVERY_WEIGHT: Weight = 25_000;
+
+/// Maximal weight of single message delivery confirmation transaction on Template chain.
+///
+/// This value is a result of `pallet_bridge_messages::Pallet::receive_messages_delivery_proof` weight formula computation
+/// for the case when single message is confirmed. The result then must be rounded up to account possible future
+/// runtime upgrades.
+pub const MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT: Weight = 2_000_000_000;
 
 /// Name of the `TemplateFinalityApi::best_finalized` runtime method.
 pub const BEST_FINALIZED_TEMPLATE_HEADER_METHOD: &str = "TemplateFinalityApi_best_finalized";
