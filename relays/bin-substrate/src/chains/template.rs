@@ -16,7 +16,12 @@
 
 //! Template chain specification for CLI.
 
-use crate::cli::{encode_message, CliChain};
+use crate::cli::{
+	bridge,
+	encode_call::{self, CliEncodeCall},
+	encode_message, CliChain,
+};
+use codec::Decode;
 use frame_support::weights::Weight;
 use relay_template_client::Template;
 use sp_version::RuntimeVersion;
@@ -37,5 +42,42 @@ impl CliChain for Template {
 
 	fn encode_message(_message: encode_message::MessagePayload) -> Result<Self::MessagePayload, String> {
 		Err("Sending messages from Template is not yet supported.".into())
+	}
+}
+
+impl CliEncodeCall for Template {
+	fn max_extrinsic_size() -> u32 {
+		bp_template::max_extrinsic_size()
+	}
+
+	fn encode_call(call: &encode_call::Call) -> anyhow::Result<Self::Call> {
+		use encode_call::Call;
+
+		Ok(match call {
+			Call::Raw { data } => Decode::decode(&mut &*data.0)?,
+			Call::Remark { remark_payload, .. } => template_runtime::Call::System(
+				template_runtime::SystemCall::remark(remark_payload.as_ref().map(|x| x.0.clone()).unwrap_or_default()),
+			),
+			Call::Transfer { recipient, amount } => template_runtime::Call::Balances(
+				template_runtime::BalancesCall::transfer(recipient.raw_id().into(), amount.0),
+			),
+			Call::BridgeSendMessage {
+				lane,
+				payload,
+				fee,
+				bridge_instance_index,
+			} => match *bridge_instance_index {
+				bridge::TEMPLATE_TO_MILLAU_INDEX => {
+					let payload = Decode::decode(&mut &*payload.0)?;
+					template_runtime::Call::BridgeMillauMessages(template_runtime::MessagesCall::send_message(
+						lane.0, payload, fee.0,
+					))
+				}
+				_ => anyhow::bail!(
+					"Unsupported target bridge pallet with instance index: {}",
+					bridge_instance_index
+				),
+			},
+		})
 	}
 }
