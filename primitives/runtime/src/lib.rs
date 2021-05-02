@@ -41,6 +41,9 @@ pub const RIALTO_BRIDGE_INSTANCE: InstanceId = *b"rlto";
 /// Bridge-with-Millau instance id.
 pub const MILLAU_BRIDGE_INSTANCE: InstanceId = *b"mlau";
 
+/// Bridge-with-Template instance id.
+pub const TEMPLATE_BRIDGE_INSTANCE: InstanceId = *b"tmpl";
+
 /// Bridge-with-Polkadot instance id.
 pub const POLKADOT_BRIDGE_INSTANCE: InstanceId = *b"pdot";
 
