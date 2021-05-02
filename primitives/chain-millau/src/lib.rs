@@ -205,6 +205,11 @@ pub fn derive_account_from_rialto_id(id: bp_runtime::SourceAccount<AccountId>) -
 	AccountIdConverter::convert(encoded_id)
 }
 
+pub fn derive_account_from_template_id(id: bp_runtime::SourceAccount<AccountId>) -> AccountId {
+	let encoded_id = bp_runtime::derive_account_id(bp_runtime::TEMPLATE_BRIDGE_INSTANCE, id);
+	AccountIdConverter::convert(encoded_id)
+}
+
 frame_support::parameter_types! {
 	pub BlockLength: limits::BlockLength =
 		limits::BlockLength::max_with_normal_ratio(2 * 1024 * 1024, NORMAL_DISPATCH_RATIO);

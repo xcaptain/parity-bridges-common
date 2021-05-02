@@ -22,6 +22,8 @@ arg_enum! {
 	pub enum FullBridge {
 		MillauToRialto,
 		RialtoToMillau,
+		TemplateToMillau,
+		MillauToTemplate,
 	}
 }
 
@@ -31,12 +33,16 @@ impl FullBridge {
 		match self {
 			Self::MillauToRialto => MILLAU_TO_RIALTO_INDEX,
 			Self::RialtoToMillau => RIALTO_TO_MILLAU_INDEX,
+			Self::TemplateToMillau => TEMPLATE_TO_MILLAU_INDEX,
+			Self::MillauToTemplate => MILLAU_TO_TEMPLATE_INDEX,
 		}
 	}
 }
 
 pub const RIALTO_TO_MILLAU_INDEX: u8 = 0;
 pub const MILLAU_TO_RIALTO_INDEX: u8 = 0;
+pub const MILLAU_TO_TEMPLATE_INDEX: u8 = 1;
+pub const TEMPLATE_TO_MILLAU_INDEX: u8 = 0;
 
 /// The macro allows executing bridge-specific code without going fully generic.
 ///
@@ -88,6 +94,52 @@ macro_rules! select_full_bridge {
 				// Send-message
 				#[allow(unused_imports)]
 				use rialto_runtime::millau_account_ownership_digest as account_ownership_digest;
+
+				$generic
+			}
+			FullBridge::TemplateToMillau => {
+				type Source = relay_template_client::Template;
+				#[allow(dead_code)]
+				type Target = relay_millau_client::Millau;
+
+				// Derive-account
+				#[allow(unused_imports)]
+				use bp_template::derive_account_from_millau_id as derive_account;
+
+				// Relay-messages
+				#[allow(unused_imports)]
+				use crate::chains::template_messages_to_millau::run as relay_messages;
+
+				// Send-message / Estimate-fee
+				#[allow(unused_imports)]
+				use bp_millau::TO_MILLAU_ESTIMATE_MESSAGE_FEE_METHOD as ESTIMATE_MESSAGE_FEE_METHOD;
+
+				// Send-message
+				#[allow(unused_imports)]
+				use template_runtime::millau_account_ownership_digest as account_ownership_digest;
+
+				$generic
+			}
+			FullBridge::MillauToTemplate => {
+				type Source = relay_millau_client::Millau;
+				#[allow(dead_code)]
+				type Target = relay_template_client::Template;
+
+				// Derive-account
+				#[allow(unused_imports)]
+				use bp_millau::derive_account_from_template_id as derive_account;
+
+				// Relay-messages
+				#[allow(unused_imports)]
+				use crate::chains::millau_messages_to_template::run as relay_messages;
+
+				// Send-message / Estimate-fee
+				#[allow(unused_imports)]
+				use bp_template::TO_TEMPLATE_ESTIMATE_MESSAGE_FEE_METHOD as ESTIMATE_MESSAGE_FEE_METHOD;
+
+				// Send-message
+				#[allow(unused_imports)]
+				use millau_runtime::template_account_ownership_digest as account_ownership_digest;
 
 				$generic
 			}
