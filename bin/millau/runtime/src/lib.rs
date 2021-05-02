@@ -31,6 +31,7 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 pub mod rialto_messages;
+pub mod template_messages;
 
 use crate::rialto_messages::{ToRialtoMessagePayload, WithRialtoMessageBridge};
 
@@ -209,17 +210,6 @@ impl frame_system::Config for Runtime {
 impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
 }
-impl pallet_bridge_dispatch::Config for Runtime {
-	type Event = Event;
-	type MessageId = (bp_messages::LaneId, bp_messages::MessageNonce);
-	type Call = Call;
-	type CallFilter = ();
-	type EncodedCall = crate::rialto_messages::FromRialtoEncodedCall;
-	type SourceChainAccountId = bp_rialto::AccountId;
-	type TargetChainAccountPublic = MultiSigner;
-	type TargetChainSignature = MultiSignature;
-	type AccountIdConverter = bp_millau::AccountIdConverter;
-}
 
 impl pallet_grandpa::Config for Runtime {
 	type Event = Event;
@@ -393,6 +383,66 @@ impl pallet_bridge_messages::Config<WithRialtoMessagesInstance> for Runtime {
 	type MessageDispatch = crate::rialto_messages::FromRialtoMessageDispatch;
 }
 
+/// Instance of the messages pallet used to relay messages to/from Template chain.
+pub type WithTemplateMessagesInstance = pallet_bridge_messages::Instance1;
+
+impl pallet_bridge_messages::Config<WithTemplateMessagesInstance> for Runtime {
+	type Event = Event;
+	// TODO: https://github.com/paritytech/parity-bridges-common/issues/390
+	type WeightInfo = ();
+	type Parameter = template_messages::MillauToTemplateMessagesParameter;
+	type MaxMessagesToPruneAtOnce = MaxMessagesToPruneAtOnce;
+	type MaxUnrewardedRelayerEntriesAtInboundLane = MaxUnrewardedRelayerEntriesAtInboundLane;
+	type MaxUnconfirmedMessagesAtInboundLane = MaxUnconfirmedMessagesAtInboundLane;
+
+	type OutboundPayload = crate::template_messages::ToTemplateMessagePayload;
+	type OutboundMessageFee = Balance;
+
+	type InboundPayload = crate::template_messages::FromTemplateMessagePayload;
+	type InboundMessageFee = bp_template::Balance;
+	type InboundRelayer = bp_template::AccountId;
+
+	type AccountIdConverter = bp_millau::AccountIdConverter;
+
+	type TargetHeaderChain = crate::template_messages::Template;
+	type LaneMessageVerifier = crate::template_messages::ToTemplateMessageVerifier;
+	type MessageDeliveryAndDispatchPayment = pallet_bridge_messages::instant_payments::InstantCurrencyPayments<
+		Runtime,
+		pallet_balances::Pallet<Runtime>,
+		GetDeliveryConfirmationTransactionFee,
+		RootAccountForPayments,
+	>;
+
+	type SourceHeaderChain = crate::template_messages::Template;
+	type MessageDispatch = crate::template_messages::FromTemplateMessageDispatch;
+}
+
+pub type RialtoDispatchInstance = pallet_bridge_dispatch::DefaultInstance;
+impl pallet_bridge_dispatch::Config<RialtoDispatchInstance> for Runtime {
+	type Event = Event;
+	type MessageId = (bp_messages::LaneId, bp_messages::MessageNonce);
+	type Call = Call;
+	type CallFilter = ();
+	type EncodedCall = crate::rialto_messages::FromRialtoEncodedCall;
+	type SourceChainAccountId = bp_rialto::AccountId;
+	type TargetChainAccountPublic = MultiSigner;
+	type TargetChainSignature = MultiSignature;
+	type AccountIdConverter = bp_millau::AccountIdConverter;
+}
+
+pub type TemplateDispatchInstance = pallet_bridge_dispatch::Instance1;
+impl pallet_bridge_dispatch::Config<TemplateDispatchInstance> for Runtime {
+	type Event = Event;
+	type MessageId = (bp_messages::LaneId, bp_messages::MessageNonce);
+	type Call = Call;
+	type CallFilter = ();
+	type EncodedCall = crate::template_messages::FromTemplateEncodedCall;
+	type SourceChainAccountId = bp_template::AccountId;
+	type TargetChainAccountPublic = MultiSigner;
+	type TargetChainSignature = MultiSignature;
+	type AccountIdConverter = bp_millau::AccountIdConverter;
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -400,7 +450,9 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
 		BridgeRialtoMessages: pallet_bridge_messages::{Pallet, Call, Storage, Event<T>},
+		BridgeTemplateMessages: pallet_bridge_messages::<Instance1>::{Pallet, Call, Storage, Event<T>},
 		BridgeDispatch: pallet_bridge_dispatch::{Pallet, Event<T>},
+		BridgeTemplateDispatch: pallet_bridge_dispatch::<Instance1>::{Pallet, Event<T>},
 		BridgeRialtoGrandpa: pallet_bridge_grandpa::{Pallet, Call, Storage},
 		BridgeWestendGrandpa: pallet_bridge_grandpa::<Instance1>::{Pallet, Call, Config<T>, Storage},
 		BridgeTemplateGrandpa: pallet_bridge_grandpa::<Instance2>::{Pallet, Call, Config<T>, Storage},
@@ -681,6 +733,29 @@ where
 		rialto_call,
 		millau_account_id,
 		rialto_spec_version,
+		bp_runtime::MILLAU_BRIDGE_INSTANCE,
+	)
+}
+
+/// Template account ownership digest from Millau.
+///
+/// The byte vector returned by this function should be signed with a Template account private key.
+/// This way, the owner of `millau_account_id` on Millau proves that the 'template' account private key
+/// is also under his control.
+pub fn template_account_ownership_digest<Call, AccountId, SpecVersion>(
+	template_call: &Call,
+	millau_account_id: AccountId,
+	template_spec_version: SpecVersion,
+) -> sp_std::vec::Vec<u8>
+where
+	Call: codec::Encode,
+	AccountId: codec::Encode,
+	SpecVersion: codec::Encode,
+{
+	pallet_bridge_dispatch::account_ownership_digest(
+		template_call,
+		millau_account_id,
+		template_spec_version,
 		bp_runtime::MILLAU_BRIDGE_INSTANCE,
 	)
 }
