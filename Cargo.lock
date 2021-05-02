@@ -8779,7 +8779,11 @@ dependencies = [
 name = "template-runtime"
 version = "3.0.0"
 dependencies = [
+ "bp-messages",
  "bp-millau",
+ "bp-runtime",
+ "bp-template",
+ "bridge-runtime-common",
  "frame-benchmarking",
  "frame-executive",
  "frame-support",
@@ -8789,7 +8793,9 @@ dependencies = [
  "hex-literal 0.3.1",
  "pallet-aura",
  "pallet-balances",
+ "pallet-bridge-dispatch",
  "pallet-bridge-grandpa",
+ "pallet-bridge-messages",
  "pallet-grandpa",
  "pallet-randomness-collective-flip",
  "pallet-sudo",

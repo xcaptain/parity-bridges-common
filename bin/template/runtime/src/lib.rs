@@ -15,7 +15,7 @@ use sp_runtime::traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, Identify
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, MultiSignature,
+	ApplyExtrinsicResult, MultiSignature, MultiSigner,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -33,14 +33,18 @@ pub use frame_support::{
 	StorageValue,
 };
 
+pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_bridge_grandpa::Call as GrandpaCall;
+pub use pallet_bridge_messages::Call as MessagesCall;
 pub use pallet_timestamp::Call as TimestampCall;
 
 use pallet_transaction_payment::CurrencyAdapter;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
+
+pub mod millau_messages;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -278,6 +282,64 @@ impl pallet_bridge_grandpa::Config for Runtime {
 	type WeightInfo = ();
 }
 
+parameter_types! {
+	pub const MaxMessagesToPruneAtOnce: bp_messages::MessageNonce = 8;
+	pub const MaxUnrewardedRelayerEntriesAtInboundLane: bp_messages::MessageNonce =
+		bp_template::MAX_UNREWARDED_RELAYER_ENTRIES_AT_INBOUND_LANE;
+	pub const MaxUnconfirmedMessagesAtInboundLane: bp_messages::MessageNonce =
+		bp_template::MAX_UNCONFIRMED_MESSAGES_AT_INBOUND_LANE;
+	// `IdentityFee` is used by Template => we may use weight directly
+	pub const GetDeliveryConfirmationTransactionFee: Balance =
+		bp_template::MAX_SINGLE_MESSAGE_DELIVERY_CONFIRMATION_TX_WEIGHT as _;
+	pub const RootAccountForPayments: Option<AccountId> = None;
+}
+
+/// Instance of the messages pallet used to relay messages to/from Millau chain.
+pub type WithMillauMessagesInstance = pallet_bridge_messages::DefaultInstance;
+
+impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
+	type Event = Event;
+	type WeightInfo = pallet_bridge_messages::weights::RialtoWeight<Runtime>;
+	type Parameter = millau_messages::TemplateToMillauMessagesParameter;
+	type MaxMessagesToPruneAtOnce = MaxMessagesToPruneAtOnce;
+	type MaxUnrewardedRelayerEntriesAtInboundLane = MaxUnrewardedRelayerEntriesAtInboundLane;
+	type MaxUnconfirmedMessagesAtInboundLane = MaxUnconfirmedMessagesAtInboundLane;
+
+	type OutboundPayload = crate::millau_messages::ToMillauMessagePayload;
+	type OutboundMessageFee = Balance;
+
+	type InboundPayload = crate::millau_messages::FromMillauMessagePayload;
+	type InboundMessageFee = bp_millau::Balance;
+	type InboundRelayer = bp_millau::AccountId;
+
+	type AccountIdConverter = bp_template::AccountIdConverter;
+
+	type TargetHeaderChain = crate::millau_messages::Millau;
+	type LaneMessageVerifier = crate::millau_messages::ToMillauMessageVerifier;
+
+	type MessageDeliveryAndDispatchPayment = pallet_bridge_messages::instant_payments::InstantCurrencyPayments<
+		Runtime,
+		pallet_balances::Pallet<Runtime>,
+		GetDeliveryConfirmationTransactionFee,
+		RootAccountForPayments,
+	>;
+
+	type SourceHeaderChain = crate::millau_messages::Millau;
+	type MessageDispatch = crate::millau_messages::FromMillauMessageDispatch;
+}
+
+impl pallet_bridge_dispatch::Config for Runtime {
+	type Event = Event;
+	type MessageId = (bp_messages::LaneId, bp_messages::MessageNonce);
+	type Call = Call;
+	type CallFilter = ();
+	type EncodedCall = crate::millau_messages::FromMillauEncodedCall;
+	type SourceChainAccountId = bp_millau::AccountId;
+	type TargetChainAccountPublic = MultiSigner;
+	type TargetChainSignature = MultiSignature;
+	type AccountIdConverter = bp_template::AccountIdConverter;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -293,7 +355,9 @@ construct_runtime!(
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
 		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
+		BridgeDispatch: pallet_bridge_dispatch::{Pallet, Event<T>},
 		BridgeMillau: pallet_bridge_grandpa::{Pallet, Call, Config<T>, Storage},
+		BridgeMillauMessages: pallet_bridge_messages::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
@@ -501,4 +565,27 @@ impl_runtime_apis! {
 			Ok(batches)
 		}
 	}
+}
+
+/// Template account ownership digest from Millau.
+///
+/// The byte vector returned by this function should be signed with a Template account private key.
+/// This way, the owner of `millau_account_id` on Millau proves that the 'template' account private key
+/// is also under his control.
+pub fn millau_account_ownership_digest<Call, AccountId, SpecVersion>(
+	millau_call: &Call,
+	template_account_id: AccountId,
+	millau_spec_version: SpecVersion,
+) -> sp_std::vec::Vec<u8>
+where
+	Call: codec::Encode,
+	AccountId: codec::Encode,
+	SpecVersion: codec::Encode,
+{
+	pallet_bridge_dispatch::account_ownership_digest(
+		millau_call,
+		template_account_id,
+		millau_spec_version,
+		bp_runtime::TEMPLATE_BRIDGE_INSTANCE,
+	)
 }
