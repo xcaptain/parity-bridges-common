@@ -91,6 +91,8 @@ impl Alternative {
 						vec![
 							get_account_id_from_seed::<sr25519::Public>("Alice"),
 							get_account_id_from_seed::<sr25519::Public>("Bob"),
+							get_account_id_from_seed::<sr25519::Public>("Charlie"),
+							get_account_id_from_seed::<sr25519::Public>("Dave"),
 							get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
 							get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
 							derive_account_from_rialto_id(bp_runtime::SourceAccount::Account(
@@ -180,7 +182,7 @@ fn testnet_genesis(
 			changes_trie_config: Default::default(),
 		},
 		pallet_balances: BalancesConfig {
-			balances: endowed_accounts.iter().cloned().map(|k| (k, 1 << 20)).collect(),
+			balances: endowed_accounts.iter().cloned().map(|k| (k, 1 << 40)).collect(),
 		},
 		pallet_aura: AuraConfig {
 			authorities: Vec::new(),
