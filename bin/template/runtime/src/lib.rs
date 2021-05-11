@@ -279,6 +279,7 @@ parameter_types! {
 	pub const HeadersToKeep: u32 = 1024;
 }
 
+pub type MillauGrandpaInstance = ();
 impl pallet_bridge_grandpa::Config for Runtime {
 	type BridgedChain = bp_millau::Millau;
 	type MaxRequests = MaxRequests;
@@ -299,7 +300,7 @@ parameter_types! {
 }
 
 /// Instance of the messages pallet used to relay messages to/from Millau chain.
-pub type WithMillauMessagesInstance = pallet_bridge_messages::DefaultInstance;
+pub type WithMillauMessagesInstance = pallet_bridge_messages::Instance1;
 
 impl pallet_bridge_messages::Config<WithMillauMessagesInstance> for Runtime {
 	type Event = Event;
@@ -361,7 +362,7 @@ construct_runtime!(
 		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
 		BridgeDispatch: pallet_bridge_dispatch::{Pallet, Event<T>},
 		BridgeMillau: pallet_bridge_grandpa::{Pallet, Call, Config<T>, Storage},
-		BridgeMillauMessages: pallet_bridge_messages::{Pallet, Call, Storage, Event<T>},
+		BridgeMillauMessages: pallet_bridge_messages::<Instance1>::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
