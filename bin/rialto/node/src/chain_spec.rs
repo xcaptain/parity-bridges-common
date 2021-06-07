@@ -73,7 +73,7 @@ impl Alternative {
 				"tokenDecimals": 9,
 				"tokenSymbol": "RLT",
 				"bridgeIds": {
-					"Millau": bp_runtime::MILLAU_BRIDGE_INSTANCE,
+					"Millau": bp_runtime::MILLAU_CHAIN_ID,
 				}
 			})
 			.as_object()
@@ -181,7 +181,7 @@ fn testnet_genesis(
 			changes_trie_config: Default::default(),
 		},
 		pallet_balances: BalancesConfig {
-			balances: endowed_accounts.iter().cloned().map(|k| (k, 1 << 40)).collect(),
+			balances: endowed_accounts.iter().cloned().map(|k| (k, 1 << 50)).collect(),
 		},
 		pallet_aura: AuraConfig {
 			authorities: Vec::new(),

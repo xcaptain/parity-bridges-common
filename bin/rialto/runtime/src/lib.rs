@@ -61,7 +61,7 @@ use sp_version::RuntimeVersion;
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{Currency, ExistenceRequirement, Imbalance, KeyOwnerProofSystem, Randomness},
+	traits::{Currency, ExistenceRequirement, Imbalance, KeyOwnerProofSystem},
 	weights::{constants::WEIGHT_PER_SECOND, DispatchClass, IdentityFee, RuntimeDbWeight, Weight},
 	StorageValue,
 };
@@ -587,10 +587,6 @@ impl_runtime_apis! {
 		) -> sp_inherents::CheckInherentsResult {
 			data.check_extrinsics(&block)
 		}
-
-		fn random_seed() -> <Block as BlockT>::Hash {
-			RandomnessCollectiveFlip::random_seed().0
-		}
 	}
 
 	impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Index> for Runtime {
@@ -1030,7 +1026,7 @@ impl_runtime_apis! {
 /// The byte vector returned by this function should be signed with a Millau account private key.
 /// This way, the owner of `rialto_account_id` on Rialto proves that the 'millau' account private key
 /// is also under his control.
-pub fn millau_account_ownership_digest<Call, AccountId, SpecVersion>(
+pub fn rialto_to_millau_account_ownership_digest<Call, AccountId, SpecVersion>(
 	millau_call: &Call,
 	rialto_account_id: AccountId,
 	millau_spec_version: SpecVersion,
@@ -1044,7 +1040,8 @@ where
 		millau_call,
 		rialto_account_id,
 		millau_spec_version,
-		bp_runtime::RIALTO_BRIDGE_INSTANCE,
+		bp_runtime::RIALTO_CHAIN_ID,
+		bp_runtime::MILLAU_CHAIN_ID,
 	)
 }
 
