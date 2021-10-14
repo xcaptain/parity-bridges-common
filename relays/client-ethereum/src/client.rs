@@ -71,7 +71,7 @@ impl Client {
 		params: &ConnectionParams,
 	) -> Result<(Arc<tokio::runtime::Runtime>, Arc<RpcClient>)> {
 		let tokio = tokio::runtime::Runtime::new()?;
-		let uri = format!("ws://{}:{}", params.host, params.port);
+		let uri = format!("wss://{}:{}", params.host, params.port);
 		let client = tokio
 			.spawn(async move { RpcClientBuilder::default().build(&uri).await })
 			.await??;
